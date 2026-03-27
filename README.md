@@ -1,3 +1,9 @@
+# Branch EOL
+
+The `ver/1.8-1.12` won't receive any more updates, legacy Fabric versions have seen almost no usage in the last years and the maintenance
+of these versions is taking a lot of extra time and effort. Please consider updating to newer versions of the game or using
+[ViaForge](https://github.com/ViaVersion/ViaForge) which actively targets older game versions.
+
 # ViaFabric
 
 [![ViaVersion Discord](https://img.shields.io/badge/chat-on%20discord-blue.svg)](https://viaversion.com/discord)
