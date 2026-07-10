@@ -5,8 +5,8 @@ plugins {
     id 'ploceus' version '1.17.4'
 }
 
-group = "com.viaversion.fabriclegacy"
-version = "0.4.22-sensation"
+group = "com.github.Adi0nt.ViaFabricLegacy"
+version = providers.gradleProperty("version").getOrElse("0.4.22-sensation")
 description = "Client-side and server-side ViaVersion implementation for Fabric"
 
 ploceus {
@@ -57,6 +57,15 @@ dependencies {
     include("com.viaversion:viarewind:${project.viarewind_version}")
 
     testImplementation "org.testng:testng:7.11.0"
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = "ViaFabricLegacy"
+            from components.java
+        }
+    }
 }
 
 test {

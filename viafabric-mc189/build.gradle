@@ -57,6 +57,15 @@ dependencies {
     implementation("io.netty:netty-all:4.0.56.Final")
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = "viafabric-mc189"
+            from components.java
+        }
+    }
+}
+
 processResources {
     inputs.property 'version', version
     inputs.property 'description', rootProject.description
