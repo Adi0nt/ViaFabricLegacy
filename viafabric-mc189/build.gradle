@@ -67,9 +67,9 @@ publishing {
 }
 
 processResources {
-    inputs.property 'version', version
+    inputs.property 'version', rootProject.viafabric_mod_version
     inputs.property 'description', rootProject.description
     filesMatching("fabric.mod.json") {
-        expand 'version': version, 'description': rootProject.description
+        expand 'version': rootProject.viafabric_mod_version, 'description': rootProject.description
     }
 }

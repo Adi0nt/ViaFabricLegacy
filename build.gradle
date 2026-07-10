@@ -75,9 +75,9 @@ test {
 import groovy.json.JsonSlurper
 
 processResources {
-    inputs.property 'version', version
+    inputs.property 'version', project.viafabric_mod_version
     filesMatching("fabric.mod.json") {
-        expand 'version': version, 'description': project.description
+        expand 'version': project.viafabric_mod_version, 'description': project.description
     }
 
     filesMatching("assets/*/lang/*.lang") {
