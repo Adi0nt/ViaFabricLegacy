@@ -22,7 +22,6 @@ import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.realms.RealmsSharedConstants;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerStatus;
 
@@ -40,11 +39,6 @@ public class FabricNativeVersionProvider implements NativeVersionProvider {
 
     @Environment(EnvType.CLIENT)
     private int getClientProtocol() {
-        try {
-            return RealmsSharedConstants.class.getField("NETWORK_PROTOCOL_VERSION").getInt(null);
-        } catch (IllegalAccessException | NoSuchFieldException e) {
-            e.printStackTrace();
-        }
-        return ProtocolVersion.v1_8.getVersion(); // fallback
+        return ProtocolVersion.v1_8.getVersion();
     }
 }
