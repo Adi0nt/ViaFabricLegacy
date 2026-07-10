@@ -29,13 +29,13 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.network.*;
-import net.minecraft.network.listener.ClientQueryPacketListener;
+import net.minecraft.client.network.handler.ClientQueryPacketHandler;
 import net.minecraft.network.packet.c2s.handshake.HandshakeC2SPacket;
-import net.minecraft.network.packet.c2s.query.QueryRequestC2SPacket;
-import net.minecraft.network.packet.s2c.query.QueryPongS2CPacket;
-import net.minecraft.network.packet.s2c.query.QueryResponseS2CPacket;
+import net.minecraft.network.packet.c2s.query.ServerStatusC2SPacket;
+import net.minecraft.network.packet.s2c.query.PingS2CPacket;
+import net.minecraft.network.packet.s2c.query.ServerStatusS2CPacket;
 import net.minecraft.realms.RealmsSharedConstants;
-import net.minecraft.server.ServerMetadata;
+import net.minecraft.server.ServerStatus;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
@@ -55,10 +55,10 @@ public class ProtocolAutoDetector {
                 CompletableFuture<ProtocolVersion> future = new CompletableFuture<>();
 
                 try {
-                    final ClientConnection clientConnection = new ClientConnection(NetworkSide.CLIENTBOUND);
+                    final Connection clientConnection = new Connection(PacketFlow.CLIENTBOUND);
 
                     ChannelFuture ch = new Bootstrap()
-                            .group(ClientConnection.field_11553.get())
+                            .group(Connection.NETWORK_GROUP.get())
                             .channel(NioSocketChannel.class)
                             .handler(new ChannelInitializer<Channel>() {
                                 protected void initChannel(Channel channel) {
@@ -71,9 +71,9 @@ public class ProtocolAutoDetector {
                                     channel.pipeline()
                                             .addLast("timeout", new ReadTimeoutHandler(30))
                                             .addLast("splitter", new SplitterHandler())
-                                            .addLast("decoder", new DecoderHandler(NetworkSide.CLIENTBOUND))
+                                            .addLast("decoder", new PacketDecoder(PacketFlow.CLIENTBOUND))
                                             .addLast("prepender", new SizePrepender())
-                                            .addLast("encoder", new PacketEncoder(NetworkSide.SERVERBOUND))
+                                            .addLast("encoder", new PacketEncoder(PacketFlow.SERVERBOUND))
                                             .addLast("packet_handler", clientConnection);
                                 }
                             })
@@ -84,13 +84,13 @@ public class ProtocolAutoDetector {
                             future.completeExceptionally(future1.cause());
                         } else {
                             ch.channel().eventLoop().execute(() -> { // needs to execute after channel init
-                                clientConnection.setPacketListener(new ClientQueryPacketListener() {
+                                clientConnection.setListener(new ClientQueryPacketHandler() {
                                     @Override
-                                    public void onResponse(QueryResponseS2CPacket packet) {
-                                        ServerMetadata meta = packet.getServerMetadata();
-                                        ServerMetadata.Version version;
+                                    public void handleServerStatus(ServerStatusS2CPacket packet) {
+                                        ServerStatus meta = packet.getServerStatus();
+                                        ServerStatus.Version version;
                                         if (meta != null && (version = meta.getVersion()) != null) {
-                                            ProtocolVersion ver = ProtocolVersion.getProtocol(version.getProtocolVersion());
+                                            ProtocolVersion ver = ProtocolVersion.getProtocol(version.getProtocol());
                                             future.complete(ver);
                                             ViaFabric.JLOGGER.info("Auto-detected " + ver + " for " + address);
                                         } else {
@@ -100,19 +100,19 @@ public class ProtocolAutoDetector {
                                     }
 
                                     @Override
-                                    public void onPong(QueryPongS2CPacket packet) {
+                                    public void handlePing(PingS2CPacket packet) {
                                         clientConnection.disconnect(new LiteralText("Pong not requested!"));
                                     }
 
                                     @Override
-                                    public void onDisconnected(Text reason) {
-                                        future.completeExceptionally(new IllegalStateException(reason.asUnformattedString()));
+                                    public void onDisconnect(Text reason) {
+                                        future.completeExceptionally(new IllegalStateException(reason.getString()));
                                     }
                                 });
 
-                                clientConnection.send(new HandshakeC2SPacket(RealmsSharedConstants.NETWORK_PROTOCOL_VERSION, address.getHostString(),
-                                        address.getPort(), NetworkState.STATUS));
-                                clientConnection.send(new QueryRequestC2SPacket());
+                                clientConnection.send(new HandshakeC2SPacket(47, address.getHostString(),
+                                        address.getPort(), NetworkProtocol.STATUS));
+                                clientConnection.send(new ServerStatusC2SPacket());
                             });
                         }
                     });

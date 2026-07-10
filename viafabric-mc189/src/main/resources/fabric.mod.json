@@ -53,12 +53,10 @@
     ]
   },
   "depends": {
-    "legacy-fabric-resource-loader-v1": "*",
     "minecraft": "1.8.9",
     "viafabric": "*"
   },
   "recommends": {
-    "legacy-fabric-command-api-v1": "*"
   },
   "mixins": [
     "mixins.viafabric189.address.json",

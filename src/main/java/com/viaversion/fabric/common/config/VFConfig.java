@@ -18,6 +18,7 @@
 package com.viaversion.fabric.common.config;
 
 import com.viaversion.viaversion.util.Config;
+import com.viaversion.fabric.common.protocol.ProtocolSelectionManager;
 
 import java.io.File;
 import java.net.URL;
@@ -30,6 +31,10 @@ import java.util.logging.Logger;
 public class VFConfig extends Config {
     public static final String ENABLE_CLIENT_SIDE = "enable-client-side";
     public static final String CLIENT_SIDE_VERSION = "client-side-version";
+    public static final String AUTO_DETECT_PROTOCOL = "auto-detect-protocol";
+    public static final String SELECTED_PROTOCOL_VERSION = "selected-protocol-version";
+    public static final String SHOW_VERSION_SELECTOR_BUTTON = "show-version-selector-button";
+    public static final String ENABLE_DEBUG_LOGGING = "enable-debug-logging";
     public static final String CLIENT_SIDE_FORCE_DISABLE = "client-side-force-disable";
     public static final String HIDE_BUTTON = "hide-button";
     public static final String SEND_CONNECTION_DETAILS = "send-connection-details";
@@ -46,6 +51,26 @@ public class VFConfig extends Config {
 
     @Override
     protected void handleConfig(Map<String, Object> map) {
+        int legacyProtocol = getIntFromMap(map, CLIENT_SIDE_VERSION, ProtocolSelectionManager.AUTO_DETECT_PROTOCOL);
+        boolean autoDetect = getBooleanFromMap(map, AUTO_DETECT_PROTOCOL, legacyProtocol == ProtocolSelectionManager.AUTO_DETECT_PROTOCOL);
+        int selectedProtocol = getIntFromMap(map, SELECTED_PROTOCOL_VERSION,
+                autoDetect ? ProtocolSelectionManager.AUTO_DETECT_PROTOCOL : legacyProtocol);
+
+        if (autoDetect || !ProtocolSelectionManager.isValidSelection(selectedProtocol)) {
+            autoDetect = true;
+            selectedProtocol = ProtocolSelectionManager.AUTO_DETECT_PROTOCOL;
+        }
+
+        map.put(AUTO_DETECT_PROTOCOL, autoDetect);
+        map.put(SELECTED_PROTOCOL_VERSION, selectedProtocol);
+        map.put(CLIENT_SIDE_VERSION, autoDetect ? ProtocolSelectionManager.AUTO_DETECT_PROTOCOL : selectedProtocol);
+
+        if (!map.containsKey(SHOW_VERSION_SELECTOR_BUTTON)) {
+            map.put(SHOW_VERSION_SELECTOR_BUTTON, !getBooleanFromMap(map, HIDE_BUTTON, false));
+        }
+        if (!map.containsKey(ENABLE_DEBUG_LOGGING)) {
+            map.put(ENABLE_DEBUG_LOGGING, false);
+        }
     }
 
     @Override
@@ -62,11 +87,46 @@ public class VFConfig extends Config {
     }
 
     public int getClientSideVersion() {
-        return getInt(CLIENT_SIDE_VERSION, -1);
+        if (isAutoDetectProtocol()) {
+            return ProtocolSelectionManager.AUTO_DETECT_PROTOCOL;
+        }
+        int protocol = getSelectedProtocolVersion();
+        if (!ProtocolSelectionManager.isValidSelection(protocol)) {
+            return ProtocolSelectionManager.AUTO_DETECT_PROTOCOL;
+        }
+        return protocol;
     }
 
     public void setClientSideVersion(int val) {
+        if (val == ProtocolSelectionManager.AUTO_DETECT_PROTOCOL || !ProtocolSelectionManager.isValidSelection(val)) {
+            setAutoDetectProtocol(true);
+            setSelectedProtocolVersion(ProtocolSelectionManager.AUTO_DETECT_PROTOCOL);
+            set(CLIENT_SIDE_VERSION, ProtocolSelectionManager.AUTO_DETECT_PROTOCOL);
+            return;
+        }
+
+        setAutoDetectProtocol(false);
+        setSelectedProtocolVersion(val);
         set(CLIENT_SIDE_VERSION, val);
+    }
+
+    public boolean isAutoDetectProtocol() {
+        return getBoolean(AUTO_DETECT_PROTOCOL, true);
+    }
+
+    public void setAutoDetectProtocol(boolean val) {
+        set(AUTO_DETECT_PROTOCOL, val);
+        if (val) {
+            set(CLIENT_SIDE_VERSION, ProtocolSelectionManager.AUTO_DETECT_PROTOCOL);
+        }
+    }
+
+    public int getSelectedProtocolVersion() {
+        return getInt(SELECTED_PROTOCOL_VERSION, ProtocolSelectionManager.AUTO_DETECT_PROTOCOL);
+    }
+
+    public void setSelectedProtocolVersion(int val) {
+        set(SELECTED_PROTOCOL_VERSION, val);
     }
 
     public Collection<?> getClientSideForceDisable() {
@@ -75,10 +135,20 @@ public class VFConfig extends Config {
 
     public void setHideButton(boolean val) {
         set(HIDE_BUTTON, val);
+        set(SHOW_VERSION_SELECTOR_BUTTON, !val);
     }
 
     public boolean isHideButton() {
-        return getBoolean(HIDE_BUTTON, false);
+        return !isShowVersionSelectorButton();
+    }
+
+    public boolean isShowVersionSelectorButton() {
+        return getBoolean(SHOW_VERSION_SELECTOR_BUTTON, true);
+    }
+
+    public void setShowVersionSelectorButton(boolean val) {
+        set(SHOW_VERSION_SELECTOR_BUTTON, val);
+        set(HIDE_BUTTON, !val);
     }
 
     public boolean isForcedDisable(String line) {
@@ -87,5 +157,38 @@ public class VFConfig extends Config {
 
     public boolean isSendConnectionDetails() {
         return getBoolean(SEND_CONNECTION_DETAILS, false);
+    }
+
+    public boolean isDebugLoggingEnabled() {
+        return getBoolean(ENABLE_DEBUG_LOGGING, false);
+    }
+
+    public void setDebugLoggingEnabled(boolean val) {
+        set(ENABLE_DEBUG_LOGGING, val);
+    }
+
+    private static int getIntFromMap(Map<String, Object> map, String key, int def) {
+        Object value = map.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return def;
+    }
+
+    private static boolean getBooleanFromMap(Map<String, Object> map, String key, boolean def) {
+        Object value = map.get(key);
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        if (value instanceof String) {
+            return Boolean.parseBoolean((String) value);
+        }
+        return def;
     }
 }

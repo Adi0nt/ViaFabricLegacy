@@ -17,11 +17,11 @@
  */
 package com.viaversion.fabric.mc189.gui;
 
-import com.mojang.blaze3d.platform.GlStateManager;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.platform.GlStateManager;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.sound.SoundManager;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.sound.system.SoundManager;
+import net.minecraft.resource.Identifier;
 
 import java.util.function.Consumer;
 
@@ -45,11 +45,11 @@ public class ViaButton extends ButtonWidget {
         this.onClick = onClick;
     }
 
-    public void render(MinecraftClient client, int mouseX, int mouseY) {
+    public void render(Minecraft client, int mouseX, int mouseY) {
         // Modified copy-paste from LockButtonWidget
         if (this.visible) {
-            client.getTextureManager().bindTexture(texturePath);
-            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+            client.getTextureManager().bind(texturePath);
+            GlStateManager.color4f(1.0F, 1.0F, 1.0F, 1.0F);
             boolean hover = mouseX >= this.x && mouseY >= this.y && mouseX < this.x + this.width && mouseY < this.y + this.height;
             int v = startV;
             if (hover) {
@@ -60,8 +60,8 @@ public class ViaButton extends ButtonWidget {
     }
 
     @Override
-    public void playDownSound(SoundManager soundManager) {
-        super.playDownSound(soundManager);
+    public void playClickSound(SoundManager soundManager) {
+        super.playClickSound(soundManager);
         onClick.accept(this);
     }
 }

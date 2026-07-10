@@ -17,8 +17,8 @@
  */
 package com.viaversion.fabric.mc189.commands;
 
-import net.minecraft.command.AbstractCommand;
-import net.minecraft.command.CommandSource;
+import net.minecraft.server.command.AbstractCommand;
+import net.minecraft.server.command.source.CommandSource;
 import net.minecraft.util.math.BlockPos;
 import com.viaversion.viaversion.api.command.ViaVersionCommand;
 
@@ -33,7 +33,7 @@ public class NMSCommandImpl extends AbstractCommand {
     }
 
     @Override
-    public String getCommandName() {
+    public String getName() {
         return "viaversion";
     }
 
@@ -43,22 +43,22 @@ public class NMSCommandImpl extends AbstractCommand {
     }
 
     @Override
-    public String getUsageTranslationKey(CommandSource commandSource) {
+    public String getUsage(CommandSource commandSource) {
         return "/viaversion [help|subcommand]";
     }
 
     @Override
-    public void execute(CommandSource commandSource, String[] strings) {
+    public void run(CommandSource commandSource, String[] strings) {
         handler.onCommand(new NMSCommandSender(commandSource), strings);
     }
 
     @Override
-    public List<String> getAutoCompleteHints(CommandSource commandSource, String[] strings, BlockPos blockPos) {
+    public List<String> getSuggestions(CommandSource commandSource, String[] strings, BlockPos blockPos) {
         return handler.onTabComplete(new NMSCommandSender(commandSource), strings);
     }
 
     @Override
-    public int getPermissionLevel() {
+    public int getRequiredPermissionLevel() {
         return 3;
     }
 }

@@ -30,8 +30,8 @@ import com.viaversion.viaversion.util.ComponentUtil;
 import io.netty.channel.EventLoop;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.entity.living.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.Text;
 
@@ -47,8 +47,8 @@ public class FabricPlatform extends AbstractFabricPlatform {
     public static MinecraftServer getServer() {
         // In 1.8.9 integrated server instance exists even if it's not running
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT
-                && !MinecraftClient.getInstance().isIntegratedServerRunning()) return null;
-        return MinecraftServer.getServer();
+                && !Minecraft.getInstance().isIntegratedServerRunning()) return null;
+        return MinecraftServer.getInstance();
     }
 
     @Override
@@ -90,7 +90,7 @@ public class FabricPlatform extends AbstractFabricPlatform {
 
     private FutureTaskId runServerSync(Runnable runnable) {
         // Kick task needs to be on main thread, it does already have error logger
-        return new FutureTaskId(CompletableFuture.runAsync(runnable, it -> getServer().method_10815((Callable<Void>) () -> {
+        return new FutureTaskId(CompletableFuture.runAsync(runnable, it -> getServer().executeTask((Callable<Void>) () -> {
             it.run();
             return null;
         })));
@@ -106,9 +106,9 @@ public class FabricPlatform extends AbstractFabricPlatform {
         MinecraftServer server = getServer();
         if (server == null) return;
         runServerSync(() -> {
-            ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
+            ServerPlayerEntity player = server.getPlayerManager().get(uuid);
             if (player == null) return;
-            player.sendMessage(Text.Serializer.deserialize(ComponentUtil.legacyToJsonString(s)));
+            player.sendMessage(Text.Serializer.fromJson(ComponentUtil.legacyToJsonString(s)));
         });
     }
 
@@ -122,12 +122,12 @@ public class FabricPlatform extends AbstractFabricPlatform {
         MinecraftServer server = getServer();
         if (server == null) return false;
         Supplier<Boolean> kickTask = () -> {
-            ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
+            ServerPlayerEntity player = server.getPlayerManager().get(uuid);
             if (player == null) return false;
             player.networkHandler.disconnect(s);
             return true;
         };
-        if (server.isOnThread()) {
+        if (server.isOnSameThread()) {
             return kickTask.get();
         } else {
             ViaFabric.JLOGGER.log(Level.WARNING, "Weird!? Player kicking was called off-thread", new Throwable());

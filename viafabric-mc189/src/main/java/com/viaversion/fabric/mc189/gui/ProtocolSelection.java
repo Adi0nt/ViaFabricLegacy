@@ -17,27 +17,15 @@
  */
 package com.viaversion.fabric.mc189.gui;
 
-import net.minecraft.client.gui.screen.world.OverworldGeneratorOptionsWidget;
+import com.viaversion.fabric.common.protocol.ProtocolSelectionManager;
 
-import java.util.function.Consumer;
+import java.util.List;
 
-public class ChangedListener implements OverworldGeneratorOptionsWidget.Controller {
-    private final Consumer<String> consumer;
-
-    public ChangedListener(Consumer<String> consumer) {
-        this.consumer = consumer;
+public final class ProtocolSelection {
+    private ProtocolSelection() {
     }
 
-    @Override
-    public void setValue(int id, boolean value) {
-    }
-
-    @Override
-    public void setValue(int id, float value) {
-    }
-
-    @Override
-    public void setValue(int id, String text) {
-        consumer.accept(text);
+    public static List<ProtocolSelectionManager.Entry> getEntries() {
+        return ProtocolSelectionManager.getSelectableProtocols();
     }
 }

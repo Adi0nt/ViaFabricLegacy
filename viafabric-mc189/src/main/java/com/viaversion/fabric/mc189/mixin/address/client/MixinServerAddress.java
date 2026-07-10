@@ -20,7 +20,7 @@ package com.viaversion.fabric.mc189.mixin.address.client;
 import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.viaversion.fabric.common.AddressParser;
-import net.minecraft.network.ServerAddress;
+import net.minecraft.client.network.ServerAddress;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -37,7 +37,7 @@ public abstract class MixinServerAddress {
         return parser.toAddress();
     }
 
-    @ModifyArg(method = "parse", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/ServerAddress;<init>(Ljava/lang/String;I)V"))
+    @ModifyArg(method = "parse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ServerAddress;<init>(Ljava/lang/String;I)V"))
     private static String injectViaMetadata(String original, int port, @Share("via") LocalRef<AddressParser> via) {
         final AddressParser parser = via.get();
         if (parser == null) {

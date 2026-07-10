@@ -22,8 +22,8 @@ import com.viaversion.fabric.common.handler.FabricDecodeHandler;
 import com.viaversion.viaversion.api.connection.ProtocolInfo;
 import com.viaversion.viaversion.api.connection.UserConnection;
 import io.netty.channel.ChannelHandler;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.hud.DebugHud;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.overlay.DebugOverlay;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -33,14 +33,14 @@ import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
 
 import java.util.List;
 
-@Mixin(DebugHud.class)
+@Mixin(DebugOverlay.class)
 public class MixinDebugHud {
-    @Inject(at = @At("RETURN"), method = "getLeftText")
+    @Inject(at = @At("RETURN"), method = "getGameInfo")
     protected void getLeftText(CallbackInfoReturnable<List<String>> info) {
         String line = "[ViaFabric] I: " + Via.getManager().getConnectionManager().getConnections().size() + " (F: "
                 + Via.getManager().getConnectionManager().getConnectedClients().size() + ")";
-        ChannelHandler viaDecoder = ((MixinClientConnectionAccessor) MinecraftClient.getInstance().getNetworkHandler()
-                .getClientConnection()).getChannel().pipeline().get(CommonTransformer.HANDLER_DECODER_NAME);
+        ChannelHandler viaDecoder = ((MixinClientConnectionAccessor) Minecraft.getInstance().getNetworkHandler()
+                .getConnection()).getChannel().pipeline().get(CommonTransformer.HANDLER_DECODER_NAME);
         if (viaDecoder instanceof FabricDecodeHandler) {
             UserConnection user = ((FabricDecodeHandler) viaDecoder).getInfo();
             ProtocolInfo protocol = user.getProtocolInfo();

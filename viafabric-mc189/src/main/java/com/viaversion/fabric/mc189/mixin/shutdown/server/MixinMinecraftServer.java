@@ -27,7 +27,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MinecraftServer.class)
 public class MixinMinecraftServer {
-    @Inject(method = "stopRunning", at = @At("TAIL"))
+    @Inject(method = "stop", at = @At("TAIL"))
     private void onStopRunning(CallbackInfo ci) {
         ((ViaManagerImpl) Via.getManager()).destroy();
     }

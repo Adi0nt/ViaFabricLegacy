@@ -33,7 +33,7 @@ import io.netty.channel.EventLoop;
 import io.netty.channel.local.LocalEventLoopGroup;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
-import net.legacyfabric.fabric.api.registry.CommandRegistry;
+import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
 import org.apache.logging.log4j.LogManager;
 
 import java.util.concurrent.CompletableFuture;
@@ -75,7 +75,20 @@ public class ViaFabric implements ModInitializer {
         HostnameParserProtocol.INSTANCE.register(Via.getManager().getProviders());
         ProtocolVersion.register(-2, "AUTO");
 
-        FabricLoader.getInstance().getEntrypoints("viafabric:via_api_initialized", Runnable.class).forEach(Runnable::run);
+        // ViaBackwards must be initialized before ViaRewind (and any other addon that
+        // calls BackwardsProtocol), because ViaRewind.init() calls
+        // ViaBackwards.getPlatform().getLogger() which will NPE if ViaBackwards hasn't
+        // registered its platform yet. Fabric Loader does not guarantee entrypoint order,
+        // so we use getEntrypointContainers to get reliable mod IDs and explicitly run
+        // ViaBackwards first, then all remaining addons.
+        java.util.List<EntrypointContainer<Runnable>> viaApiContainers = FabricLoader.getInstance()
+                .getEntrypointContainers("viafabric:via_api_initialized", Runnable.class);
+        viaApiContainers.stream()
+                .filter(c -> c.getProvider().getMetadata().getId().equals("viabackwards"))
+                .forEach(c -> c.getEntrypoint().run());
+        viaApiContainers.stream()
+                .filter(c -> !c.getProvider().getMetadata().getId().equals("viabackwards"))
+                .forEach(c -> c.getEntrypoint().run());
 
         registerCommandsV1();
 
@@ -89,9 +102,11 @@ public class ViaFabric implements ModInitializer {
 
     private void registerCommandsV1() {
         try {
-            CommandRegistry.INSTANCE.register(new NMSCommandImpl(Via.getManager().getCommandHandler()));
+            net.ornithemc.osl.lifecycle.api.server.MinecraftServerEvents.START.register(server -> {
+                ((net.minecraft.server.command.handler.CommandRegistry) server.getCommandHandler()).register(new NMSCommandImpl(Via.getManager().getCommandHandler()));
+            });
         } catch (NoClassDefFoundError ignored2) {
-            JLOGGER.info("Couldn't register command as Fabric Commands isn't installed");
+            JLOGGER.info("Couldn't register command as OSL isn't installed");
         }
     }
 }

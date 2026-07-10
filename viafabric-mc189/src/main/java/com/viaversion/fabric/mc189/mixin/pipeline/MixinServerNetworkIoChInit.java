@@ -30,7 +30,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.viaversion.viaversion.api.connection.UserConnection;
 
-@Mixin(targets = "net.minecraft.server.ServerNetworkIo$4")
+@Mixin(targets = "net.minecraft.server.network.ConnectionListener$40061135")
 public class MixinServerNetworkIoChInit {
     @Inject(method = "initChannel", at = @At(value = "TAIL"), remap = false)
     private void onInitChannel(Channel channel, CallbackInfo ci) {

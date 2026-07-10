@@ -19,7 +19,7 @@ package com.viaversion.fabric.mc189.commands;
 
 import com.viaversion.viaversion.api.command.ViaCommandSender;
 import com.viaversion.viaversion.util.ComponentUtil;
-import net.minecraft.command.CommandSource;
+import net.minecraft.server.command.source.CommandSource;
 import net.minecraft.entity.Entity;
 import net.minecraft.text.Text;
 
@@ -41,7 +41,7 @@ public class NMSCommandSender implements ViaCommandSender {
 
     @Override
     public void sendMessage(String s) {
-        source.sendMessage(Text.Serializer.deserialize(ComponentUtil.legacyToJsonString(s)));
+        source.sendMessage(Text.Serializer.fromJson(ComponentUtil.legacyToJsonString(s)));
     }
 
     @Override
@@ -55,7 +55,7 @@ public class NMSCommandSender implements ViaCommandSender {
     @Override
     public String getName() {
         if (source instanceof Entity) {
-            return source.getName().asUnformattedString();
+            return source.getName();
         }
         return "?";
     }

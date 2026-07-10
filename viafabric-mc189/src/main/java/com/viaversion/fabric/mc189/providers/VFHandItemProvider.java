@@ -24,10 +24,10 @@ import com.viaversion.viaversion.api.minecraft.item.Item;
 import com.viaversion.viaversion.protocols.v1_8to1_9.provider.HandItemProvider;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.legacyfabric.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.legacyfabric.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.player.ClientPlayerEntity;
+import net.ornithemc.osl.lifecycle.api.client.MinecraftClientEvents;
+import net.ornithemc.osl.lifecycle.api.server.MinecraftServerEvents;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.living.player.LocalClientPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 
@@ -60,36 +60,36 @@ public class VFHandItemProvider extends HandItemProvider {
     @Environment(EnvType.CLIENT)
     public void registerClientTick() {
         try {
-            ClientTickEvents.END_WORLD_TICK.register(world -> tickClient());
+            MinecraftClientEvents.TICK_END.register(minecraft -> tickClient());
         } catch (NoClassDefFoundError ignored1) {
-            ViaFabric.JLOGGER.info("Fabric Lifecycle V1 isn't installed");
+            ViaFabric.JLOGGER.info("OSL Client Lifecycle isn't installed");
         }
     }
 
     public void registerServerTick() {
         try {
-            ServerTickEvents.END_SERVER_TICK.register(this::tickServer);
+            MinecraftServerEvents.TICK_END.register(this::tickServer);
         } catch (NoClassDefFoundError ignored1) {
-            ViaFabric.JLOGGER.info("Fabric Lifecycle V1 isn't installed");
+            ViaFabric.JLOGGER.info("OSL Server Lifecycle isn't installed");
         }
     }
 
     private void tickClient() {
-        ClientPlayerEntity p = MinecraftClient.getInstance().player;
+        LocalClientPlayerEntity p = Minecraft.getInstance().player;
         if (p != null) {
-            clientItem = fromNative(p.inventory.getMainHandStack());
+            clientItem = fromNative(p.inventory.getSelectedItem());
         }
     }
 
     private void tickServer(MinecraftServer server) {
         serverPlayers.clear();
-        server.getPlayerManager().getPlayers().forEach(it -> serverPlayers
-                .put(it.getUuid(), fromNative(it.inventory.getMainHandStack())));
+        server.getPlayerManager().getAll().forEach(it -> serverPlayers
+                .put(it.getUuid(), fromNative(it.inventory.getSelectedItem())));
     }
 
     private Item fromNative(ItemStack original) {
         if (original == null) return new DataItem(0, (byte) 0, (short) 0, null);
-        int id = net.minecraft.item.Item.getRawId(original.getItem());
-        return new DataItem(id, (byte) original.count, (short) original.getDamage(), null);
+        int id = net.minecraft.item.Item.getId(original.getItem());
+        return new DataItem(id, (byte) original.size, (short) original.getDamage(), null);
     }
 }

@@ -18,9 +18,9 @@
 package com.viaversion.fabric.common.provider;
 
 import com.google.common.primitives.Ints;
-import com.viaversion.fabric.common.AddressParser;
 import com.viaversion.fabric.common.config.VFConfig;
 import com.viaversion.fabric.common.platform.NativeVersionProvider;
+import com.viaversion.fabric.common.protocol.ProtocolSelectionManager;
 import com.viaversion.fabric.common.util.ProtocolUtils;
 import com.viaversion.viaversion.api.Via;
 import com.viaversion.viaversion.api.connection.ProtocolInfo;
@@ -87,31 +87,10 @@ public abstract class AbstractFabricVersionProvider extends BaseVersionProvider 
 
             if (!getConfig().isClientSideEnabled()) return info.protocolVersion();
 
-            int serverVer = getConfig().getClientSideVersion();
             SocketAddress addr = connection.getChannel().remoteAddress();
-
-            if (addr instanceof InetSocketAddress) {
-                AddressParser parser = AddressParser.parse(((InetSocketAddress) addr).getHostName());
-                Integer addrVersion = parser.protocol();
-                if (addrVersion != null) {
-                    serverVer = addrVersion;
-                }
-
-                try {
-                    if (serverVer == -2) {
-                        // Hope protocol was autodetected
-                        ProtocolVersion autoVer =
-                                detectVersion((InetSocketAddress) addr).getNow(null);
-                        if (autoVer != null) {
-                            serverVer = autoVer.getVersion();
-                        }
-                    }
-                } catch (Exception e) {
-                    getLogger().warning("Couldn't auto detect: " + e);
-                }
-            }
-
-            ProtocolVersion serverVersion = ProtocolVersion.getProtocol(serverVer);
+            ProtocolVersion serverVersion = ProtocolSelectionManager.resolveTargetProtocol(getConfig(), info.protocolVersion(),
+                    addr, this::detectVersion, getLogger());
+            int serverVer = serverVersion.getVersion();
 
             boolean blocked = checkAddressBlocked(addr);
             boolean supported = ProtocolUtils.isSupported(serverVersion, info.protocolVersion());
