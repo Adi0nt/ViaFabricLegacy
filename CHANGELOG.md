@@ -4,6 +4,11 @@ All notable changes to this fork are documented here. Release headings follow th
 
 ## [Unreleased]
 
+### Fixed
+
+- Normalized ANSI-colored Minecraft logs before smoke-test assertions and explicitly recognized the known pre-EULA OSL
+  shutdown exception, preventing successful initialization from being reported as a CI failure.
+
 ## [0.4.23] - 2026-07-13
 
 ### Changed

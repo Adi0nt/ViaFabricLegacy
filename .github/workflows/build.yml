@@ -37,6 +37,7 @@ jobs:
             build/libs/*.jar
             viafabric-mc189/build/libs/*.jar
             build/smoke/server.log
+            build/smoke/server.clean.log
             logs/latest.log
             build/reports/**
             viafabric-mc189/build/reports/**
