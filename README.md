@@ -1,10 +1,61 @@
-# Branch EOL
+# ViaFabricLegacy for Minecraft 1.8.9
 
-The `ver/1.8-1.12` won't receive any more updates, legacy Fabric versions have seen almost no usage in the last years and the maintenance
-of these versions is taking a lot of extra time and effort. Please consider updating to newer versions of the game or using
-[ViaForge](https://github.com/ViaVersion/ViaForge) which actively targets older game versions.
+This fork maintains the `viafabric-mc189` module for Fabric Loader on Ornithe Gen 2 mappings. ViaVersion, ViaBackwards,
+and ViaRewind remain bundled. Tagged releases are the supported production builds; `main-SNAPSHOT` is an untested
+moving development target.
 
-# ViaFabric
+## Installation through JitPack
+
+Add `https://jitpack.io` to your Maven repositories, then use the module-specific dependency:
+
+```groovy
+repositories {
+    maven { url = uri("https://jitpack.io") }
+}
+
+dependencies {
+    // Recommended: immutable, tested release tag
+    modImplementation "com.github.Adi0nt.ViaFabricLegacy:viafabric-mc189:0.4.23"
+
+    // Development only: changes whenever main advances
+    // modImplementation "com.github.Adi0nt.ViaFabricLegacy:viafabric-mc189:main-SNAPSHOT"
+}
+```
+
+Development jars embed the source commit in both the artifact and Fabric metadata version, for example
+`0.4.23-dev.a6bb1ed5abcd`. Release builds use the tag version exactly. Do not cache `main-SNAPSHOT` indefinitely.
+
+## Compatibility
+
+| Component | Tested/supported version |
+|---|---|
+| Minecraft | 1.8.9 |
+| Fabric Loader | 0.19.3 |
+| Java toolchain/runtime | Java 25 LTS; Java 26 runtime supported |
+| Ornithe mappings | Feather Gen 2 build 1 |
+| Ploceus | 1.17.4 |
+| Fabric Loom | 1.17.14 |
+| Ornithe Standard Libraries | 0.20.1 |
+| ViaVersion | 5.11.0 |
+| ViaBackwards | 5.11.0 |
+| ViaRewind | 4.1.3 |
+
+### Known limitations and migration notes
+
+- Java 25 is now the minimum runtime. Consumers upgrading from `0.4.22-sensation` must select a Java 25+ runtime.
+- Replace `main-SNAPSHOT` with a release tag for production. The module name remains `viafabric-mc189`.
+- Remove separately installed ViaVersion, ViaBackwards, or ViaRewind jars unless deliberately overriding the bundled set;
+  duplicate Via installations can cause loader or classpath failures.
+- Protocol translation does not make modded registries compatible, and old protocol behavior still has the upstream
+  ViaVersion limitations described below.
+- The CI startup check is server-side and verifies loader, mappings, mixins, and Via initialization. A real 1.8.9 client
+  launch is still required before tagging a release when client UI/input mixins change. Its intentional pre-EULA stop
+  can print an OSL config-manager shutdown exception because no world scope was created; this is not a normal runtime path.
+
+See [CHANGELOG.md](CHANGELOG.md) for release changes and [RELEASING.md](RELEASING.md) for the maintainer checklist.
+GitHub release assets include `SHA256SUMS`; verify an artifact with `sha256sum -c SHA256SUMS`.
+
+## Upstream ViaFabric documentation
 
 [![ViaVersion Discord](https://img.shields.io/badge/chat-on%20discord-blue.svg)](https://viaversion.com/discord)
 [![CurseForge Downloads](http://cf.way2muchnoise.eu/full_viafabric_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/viafabric)
@@ -62,7 +113,7 @@ registry synchronization (fabric-registry-sync mod).
 
 - **Adding [ViaAprilFools](https://viaversion.com/aprilfools)**: Your server can accept April Fools versions.
 
-  Note: When using ViaFabric for versions older than 1.17, you need [Java 8 builds](https://ci.viaversion.com/)
+  Note: ViaFabric Legacy requires Java 25 or newer.
 
 - Server-side: See https://viaversion.com/
 

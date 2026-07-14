@@ -1,0 +1,5 @@
+jdk:
+  - openjdk25
+
+install:
+  - ./gradlew --no-daemon clean test :viafabric-mc189:build :viafabric-mc189:validateProductionJar publishToMavenLocal :viafabric-mc189:publishToMavenLocal

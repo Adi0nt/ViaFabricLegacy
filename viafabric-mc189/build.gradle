@@ -14,14 +14,19 @@ ploceus {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
     withSourcesJar()
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.release.set(17)
+    options.release.set(25)
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
 }
 
 repositories {
@@ -42,6 +47,7 @@ dependencies {
 
     implementation(project(":")) {
         exclude group: "net.fabricmc", module: "fabric-loader"
+        exclude group: "net.ornithemc.osl-gen2"
     }
 
     implementation("com.viaversion:viaversion:${project.viaver_version}") {
@@ -67,9 +73,35 @@ publishing {
 }
 
 processResources {
-    inputs.property 'version', rootProject.viafabric_mod_version
+    inputs.property 'version', project.version
     inputs.property 'description', rootProject.description
     filesMatching("fabric.mod.json") {
-        expand 'version': rootProject.viafabric_mod_version, 'description': rootProject.description
+        expand 'version': project.version, 'description': rootProject.description
+    }
+}
+
+tasks.register('validateProductionJar') {
+    dependsOn remapJar, rootProject.tasks.named('validateBundledVia')
+    doLast {
+        def jarFile = remapJar.archiveFile.get().asFile
+        def requiredEntries = [
+                'fabric.mod.json',
+                'mixins.viafabric189.address.json',
+                'mixins.viafabric189.gui.json',
+                'mixins.viafabric189.debug.json',
+                'mixins.viafabric189.pipeline.json',
+                'mixins.viafabric189.shutdown.json'
+        ]
+        new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+            requiredEntries.each { entry ->
+                if (zip.getEntry(entry) == null) {
+                    throw new GradleException("${jarFile.name} is missing ${entry}")
+                }
+            }
+            def metadata = new groovy.json.JsonSlurper().parse(zip.getInputStream(zip.getEntry('fabric.mod.json')))
+            if (metadata.version != project.version.toString()) {
+                throw new GradleException("fabric.mod.json version ${metadata.version} does not match artifact version ${project.version}")
+            }
+        }
     }
 }

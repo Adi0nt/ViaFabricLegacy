@@ -1,12 +1,25 @@
 plugins {
     id 'java'
     id 'maven-publish'
-    id 'fabric-loom' version '1.17-SNAPSHOT'
+    id 'fabric-loom' version '1.17.14'
     id 'ploceus' version '1.17.4'
 }
 
 group = "com.github.Adi0nt.ViaFabricLegacy"
-version = providers.gradleProperty("version").getOrElse("0.4.22-sensation")
+
+def baseVersion = providers.gradleProperty("release_version").get()
+def requestedVersion = System.getenv("VERSION")
+def releaseBuild = providers.gradleProperty("release").map { it.toBoolean() }.getOrElse(false) ||
+        (requestedVersion != null && requestedVersion ==~ /\d+\.\d+\.\d+/)
+def commit = providers.environmentVariable("GIT_COMMIT")
+        .orElse(providers.environmentVariable("GITHUB_SHA"))
+        .orElse(providers.exec {
+            commandLine 'git', 'rev-parse', '--short=12', 'HEAD'
+            ignoreExitValue = true
+        }.standardOutput.asText.map { it.trim() ?: 'unknown' })
+        .map { it.take(12) }
+
+version = releaseBuild ? baseVersion : "${baseVersion}-dev.${commit.get()}"
 description = "Client-side and server-side ViaVersion implementation for Fabric"
 
 ploceus {
@@ -15,14 +28,19 @@ ploceus {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
     withSourcesJar()
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.release.set(17)
+    options.release.set(25)
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
 }
 
 repositories {
@@ -75,9 +93,9 @@ test {
 import groovy.json.JsonSlurper
 
 processResources {
-    inputs.property 'version', project.viafabric_mod_version
+    inputs.property 'version', project.version
     filesMatching("fabric.mod.json") {
-        expand 'version': project.viafabric_mod_version, 'description': project.description
+        expand 'version': project.version, 'description': project.description
     }
 
     filesMatching("assets/*/lang/*.lang") {
@@ -97,5 +115,35 @@ processResources {
             }
         }
         expand(langMap)
+    }
+}
+
+tasks.register('verifyReleaseVersion') {
+    doLast {
+        if (!releaseBuild) {
+            throw new GradleException('Release verification requires -Prelease=true or a semantic VERSION environment variable')
+        }
+        if (System.getenv('GITHUB_REF_TYPE') == 'tag' && System.getenv('GITHUB_REF_NAME') != project.version.toString()) {
+            throw new GradleException("Tag ${System.getenv('GITHUB_REF_NAME')} does not match Gradle version ${project.version}")
+        }
+    }
+}
+
+tasks.register('validateBundledVia') {
+    dependsOn remapJar
+    doLast {
+        def jarFile = remapJar.archiveFile.get().asFile
+        def requiredEntries = [
+                "META-INF/jars/viaversion-${project.viaver_version}.jar",
+                "META-INF/jars/viabackwards-${project.viaback_version}.jar",
+                "META-INF/jars/viarewind-${project.viarewind_version}.jar"
+        ]
+        new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+            requiredEntries.each { entry ->
+                if (zip.getEntry(entry) == null) {
+                    throw new GradleException("${jarFile.name} is missing bundled dependency ${entry}")
+                }
+            }
+        }
     }
 }

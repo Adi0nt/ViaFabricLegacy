@@ -7,8 +7,8 @@
   "license": "GPL-3.0",
   "contact": {
     "homepage": "https://viaversion.com/fabric",
-    "issues": "https://github.com/ViaVersion/ViaFabric/issues",
-    "sources": "https://github.com/ViaVersion/ViaFabric"
+    "issues": "https://github.com/Adi0nt/ViaFabricLegacy/issues",
+    "sources": "https://github.com/Adi0nt/ViaFabricLegacy"
   },
   "environment": "*",
   "authors": [
@@ -53,6 +53,8 @@
     ]
   },
   "depends": {
+    "fabricloader": ">=0.19.3",
+    "java": ">=25",
     "minecraft": "1.8.9",
     "viafabric": "*"
   },

@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags: ['*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing semantic version tag to release
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Resolve tag
+        id: version
+        shell: bash
+        env:
+          PUSH_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          INPUT_TAG: ${{ inputs.tag || '' }}
+        run: |
+          tag="${PUSH_TAG:-${INPUT_TAG}}"
+          if [[ ! "${tag}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must be semantic versions such as 0.4.23." >&2
+            exit 1
+          fi
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+      - name: Checkout release tag
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # 6.0.1
+        with:
+          ref: ${{ steps.version.outputs.tag }}
+          fetch-depth: 0
+      - name: Set up JDK 25
+        uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # 5.1.0
+        with:
+          distribution: temurin
+          java-version: 25
+          check-latest: true
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2 # 5.0.0
+      - name: Verify and build immutable release
+        run: ./gradlew --no-daemon -Prelease=true verifyReleaseVersion test :viafabric-mc189:build :viafabric-mc189:validateProductionJar
+      - name: Startup smoke test
+        run: bash .github/scripts/smoke-test.sh -Prelease=true
+      - name: Prepare release assets and checksums
+        shell: bash
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          mkdir -p release
+          cp "build/libs/ViaFabricLegacy-${TAG}.jar" release/
+          cp "viafabric-mc189/build/libs/viafabric-mc189-${TAG}.jar" release/
+          (cd release && sha256sum *.jar > SHA256SUMS)
+          awk -v tag="${TAG}" '
+            index($0, "## [" tag "]") == 1 { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+            END { if (!found) exit 1 }
+          ' CHANGELOG.md > release-notes.md
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release create "${TAG}" release/* --verify-tag --title "ViaFabricLegacy ${TAG}" --notes-file release-notes.md
+      - name: Upload release build logs
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # 6.0.0
+        with:
+          name: release-${{ steps.version.outputs.tag }}-diagnostics
+          if-no-files-found: warn
+          path: |
+            build/smoke/server.log
+            logs/latest.log
+            build/reports/**
+            viafabric-mc189/build/reports/**
